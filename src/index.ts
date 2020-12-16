@@ -7,8 +7,13 @@ import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
+import redis from 'redis';
+import session from 'express-session';
+import connectRedis from 'connect-redis';
 
 const main = async () => {
+    const RedisStore = connectRedis(session);
+    const redisClient = redis.createClient();
     const orm = await MikroORM.init(mikroConfig);
     console.log(orm.em, 'fdsf');
     await orm.getMigrator().up();
@@ -17,15 +22,22 @@ const main = async () => {
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [PostResolver, UserResolver],
-            validate: false
+            validate: false,
         }),
-        context: () => ({ em: orm.em })
+        context: () => ({ em: orm.em }),
     });
+    app.use(
+        session({
+            name: 'hang',
+            store: new RedisStore({ client: redisClient }),
+            secret: 'whatsupman',
+            resave: false,
+        })
+    );
     apolloServer.applyMiddleware({ app });
     app.listen(4000, () => {
-        console.log("server started on localhost: 4000");
-    })
-}
-
+        console.log('server started on localhost: 4000');
+    });
+};
 
 main().catch((err) => console.log(err));

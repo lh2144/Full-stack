@@ -1,7 +1,7 @@
 import { User } from "../entities/User";
 import { MyContext } from "src/types";
 import argon2 from 'argon2';
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 
 @InputType() 
 class UserNamePaswwordInput {
@@ -31,6 +31,18 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+
+    @Query(() => User, { nullable: true})
+    public async currentUser(
+        @Ctx() { req, em }: MyContext
+    ): Promise<User | null> {
+        if (!req.session.userId) {
+            return null;
+        }
+        const user = await em.findOne(User, { id: req.session.userId });
+        return user;
+    }
+
     @Mutation(() => User)
     public async register(
         @Arg('options') options: UserNamePaswwordInput,
@@ -66,7 +78,7 @@ export class UserResolver {
             };
         }
 
-        req.session.userId = user;
+        req.session.userId = user.id;
         return {user};
     }
 }

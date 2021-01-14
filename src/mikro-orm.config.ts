@@ -14,5 +14,6 @@ export  default {
     dbName: 'redditcopy',
     host: 'localhost',
     type: 'postgresql',
+    password: '5136200',
     debug: !__prod__
 } as Parameters<typeof MikroORM.init>[0];

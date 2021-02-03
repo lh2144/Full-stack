@@ -1,16 +1,16 @@
-import 'reflect-metadata';
-import { MikroORM } from '@mikro-orm/core';
-import { __prod__ } from './constants';
-import mikroConfig from './mikro-orm.config';
-import express from 'express';
-import { ApolloServer } from 'apollo-server-express';
-import { buildSchema } from 'type-graphql';
-import { PostResolver } from './resolvers/post';
-import { UserResolver } from './resolvers/user';
-import redis from 'redis';
-import session from 'express-session';
-import connectRedis from 'connect-redis';
-import { MyContext } from './types';
+import "reflect-metadata";
+import { MikroORM } from "@mikro-orm/core";
+import { __prod__ } from "./constants";
+import mikroConfig from "./mikro-orm.config";
+import express from "express";
+import { ApolloServer } from "apollo-server-express";
+import { buildSchema } from "type-graphql";
+import { PostResolver } from "./resolvers/post";
+import { UserResolver } from "./resolvers/user";
+import redis from "redis";
+import session from "express-session";
+import connectRedis from "connect-redis";
+import { MyContext } from "./types";
 
 const main = async () => {
     const RedisStore = connectRedis(session);
@@ -21,15 +21,15 @@ const main = async () => {
     const app = express();
     app.use(
         session({
-            name: 'hang',
+            name: "hang",
             store: new RedisStore({ client: redisClient, disableTouch: true }),
             cookie: {
                 maxAge: 1000 * 3600 * 24 * 365,
                 httpOnly: true,
                 secure: __prod__,
-                sameSite: 'lax'
+                sameSite: "lax",
             },
-            secret: 'whatsupman',
+            secret: "whatsupman",
             resave: false,
         })
     );
@@ -38,11 +38,14 @@ const main = async () => {
             resolvers: [PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({req, res}): MyContext => ({ em: orm.em, req, res }),
+        context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
     });
-    apolloServer.applyMiddleware({ app });
+    apolloServer.applyMiddleware({
+        app,
+        cors: { origin: "http://localhost:3000" },
+    });
     app.listen(4000, () => {
-        console.log('server started on localhost: 4000');
+        console.log("server started on localhost: 4000");
     });
 };
 

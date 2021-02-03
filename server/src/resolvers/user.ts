@@ -1,10 +1,21 @@
 import { User } from "../entities/User";
 import { MyContext } from "src/types";
-import argon2 from 'argon2';
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
+import argon2 from "argon2";
+import {
+    Arg,
+    Ctx,
+    Field,
+    InputType,
+    Mutation,
+    ObjectType,
+    Query,
+    Resolver,
+} from "type-graphql";
+import { validateRegister } from "../utils/validateRegister";
+import { EntityManager } from "@mikro-orm/postgresql";
 
-@InputType() 
-class UserNamePaswwordInput {
+@InputType()
+export class UserNamePasswordInput {
     @Field()
     public userName: string;
     @Field()
@@ -15,24 +26,23 @@ class UserNamePaswwordInput {
 class FieldError {
     @Field()
     public field: string;
-    
+
     @Field()
     public message: string;
 }
 
 @ObjectType()
 class UserResponse {
-    @Field(() => [FieldError], { nullable: true})
+    @Field(() => [FieldError], { nullable: true })
     public errors?: FieldError[];
 
-    @Field(() => User, { nullable: true})
+    @Field(() => User, { nullable: true })
     public user?: User;
 }
 
 @Resolver()
 export class UserResolver {
-
-    @Query(() => User, { nullable: true})
+    @Query(() => User, { nullable: true })
     public async currentUser(
         @Ctx() { req, em }: MyContext
     ): Promise<User | null> {
@@ -43,42 +53,77 @@ export class UserResolver {
         return user;
     }
 
-    @Mutation(() => User)
+    @Mutation(() => UserResponse)
     public async register(
-        @Arg('options') options: UserNamePaswwordInput,
-        @Ctx() {em}: MyContext
+        @Arg("options") options: UserNamePasswordInput,
+        @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
+        const errors = validateRegister(options);
+
+        if (errors) {
+            return { errors };
+        }
+
         const hashedPassword = await argon2.hash(options.password);
-        const user = em.create(User, {userName: options.userName, password: hashedPassword});
-        await em.persistAndFlush(user);
-        return {user};
+        let user;
+        //  = em.create(User, {userName: options.userName, password: hashedPassword});
+        try {
+            const result = await (em as EntityManager)
+                .createQueryBuilder(User)
+                .getKnexQuery()
+                .insert({
+                    userName: options.userName,
+                    password: hashedPassword,
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                }).returning('*');
+            user =result[0];
+            await em.persistAndFlush(user);
+        } catch (err) {
+            if (err.code === "23505") {
+                return {
+                    errors: [
+                        {
+                            field: "username",
+                            message: "username already taken",
+                        },
+                    ],
+                };
+            }
+        }
+        req.session.userId = user?.id;
+        return { user };
     }
 
     @Mutation(() => UserResponse)
     public async login(
-        @Arg('options') options: UserNamePaswwordInput,
-        @Ctx() {em, req}: MyContext
-    ): Promise<UserResponse>{
-        const user = await em.findOne(User, {userName: options.userName});
+        @Arg("options") options: UserNamePasswordInput,
+        @Ctx() { em, req }: MyContext
+    ): Promise<UserResponse> {
+        const user = await em.findOne(User, { userName: options.userName });
         if (!user) {
             return {
-                errors: [{
-                    field: 'username',
-                    message: 'that username does not exist'
-                }],
+                errors: [
+                    {
+                        field: "username",
+                        message: "that username does not exist",
+                    },
+                ],
             };
         }
-        const valid  = await argon2.verify(user.password, options.password)
+        const valid = await argon2.verify(user.password, options.password);
         if (!valid) {
             return {
-                errors: [{
-                    field: 'password',
-                    message: 'paswword invalid'
-                }]
+                errors: [
+                    {
+                        field: "password",
+                        message: "paswword invalid",
+                    },
+                ],
             };
         }
 
         req.session.userId = user.id;
-        return {user};
+        return { user };
     }
 }

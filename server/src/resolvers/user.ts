@@ -13,6 +13,7 @@ import {
 } from "type-graphql";
 import { validateRegister } from "../utils/validateRegister";
 import { EntityManager } from "@mikro-orm/postgresql";
+import { Cookie_name } from "../constants";
 
 @InputType()
 export class UserNamePasswordInput {
@@ -125,5 +126,20 @@ export class UserResolver {
 
         req.session.userId = user.id;
         return { user };
+    }
+
+    @Mutation(() => Boolean)
+    public logout(
+        @Ctx() {req, res}: MyContext
+    ) {
+        return new Promise((resolve) => req.session.destroy((err: any) => {
+            res.clearCookie(Cookie_name);
+            if (err) {
+                resolve(false);
+                return;
+            }
+
+            resolve(true);
+        }));
     }
 }

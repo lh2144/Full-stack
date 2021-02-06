@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
-import { __prod__ } from "./constants";
+import { Cookie_name, __prod__ } from "./constants";
 import mikroConfig from "./mikro-orm.config";
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
@@ -21,7 +21,7 @@ const main = async () => {
     const app = express();
     app.use(
         session({
-            name: "hang",
+            name: Cookie_name,
             store: new RedisStore({ client: redisClient, disableTouch: true }),
             cookie: {
                 maxAge: 1000 * 3600 * 24 * 365,

@@ -1,10 +1,14 @@
-import { Container } from '@chakra-ui/react'
+import React from "react";
+import { NavBar } from "src/components/navbar";
+import { withUrqlClient } from 'next-urql';
+import { createUrqlClient } from "src/utils/createUrqlClient";
 
-import React from 'react'
 
 const Index = () => (
-  <Container height="100vh">
-  </Container>
-)
+    <>
+        <NavBar />
+        <div>Hello worl</div>
+    </>
+);
 
-export default Index
+export default withUrqlClient(createUrqlClient)(Index);

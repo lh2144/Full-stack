@@ -5,7 +5,7 @@ import { InputField } from "src/components/inputField";
 import { Box, Button } from "@chakra-ui/react";
 import { useLoginMutation } from "src/generated/graphqa";
 import { toErrorMap } from "src/utils/toErrorMap";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
 
 export const login: React.FC<{}> = ({}) => {
     const [, login] = useLoginMutation();
@@ -15,11 +15,11 @@ export const login: React.FC<{}> = ({}) => {
             <Formik
                 initialValues={{ userName: "", password: "" }}
                 onSubmit={async (values, { setErrors }) => {
-                    const response = await login({options: values});
+                    const response = await login({ options: values });
                     if (response.data?.login.errors) {
                         setErrors(toErrorMap(response.data.login.errors));
                     } else if (response.data?.login.user) {
-                        router.push('/');
+                        router.push("/");
                     }
                 }}
             >
@@ -42,7 +42,9 @@ export const login: React.FC<{}> = ({}) => {
                             type="submit"
                             isLoading={isSubmitting}
                             variantColor="teal"
-                        ></Button>
+                        >
+                            Logic
+                        </Button>
                     </Form>
                 )}
             </Formik>

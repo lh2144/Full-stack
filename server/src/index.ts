@@ -13,12 +13,14 @@ import connectRedis from "connect-redis";
 import { MyContext } from "./types";
 
 const main = async () => {
-    const RedisStore = connectRedis(session);
-    const redisClient = redis.createClient();
+    // sendEmail('hang@lian.com', 'hello ther')
+
     const orm = await MikroORM.init(mikroConfig);
     await orm.getMigrator().up();
 
     const app = express();
+    const RedisStore = connectRedis(session);
+    const redisClient = redis.createClient();
     app.use(
         session({
             name: Cookie_name,

@@ -43,6 +43,13 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+    // @Mutation(() => Boolean)
+    // public forgotPassword(
+    //     @Arg('email') email: string,
+    //     @Ctx() { em }: MyContext
+    // ) {
+    //     return true;
+    // }
     @Query(() => User, { nullable: true })
     public async currentUser(
         @Ctx() { req, em }: MyContext

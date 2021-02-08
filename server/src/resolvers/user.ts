@@ -21,6 +21,8 @@ export class UserNamePasswordInput {
     public userName: string;
     @Field()
     public password: string;
+    @Field()
+    public email: string;
 }
 
 @ObjectType()

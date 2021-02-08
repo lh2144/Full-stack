@@ -1,14 +1,14 @@
 import { UserNamePasswordInput } from "src/resolvers/user";
 
 export const validateRegister = (options: UserNamePasswordInput) => {
-//   if (!options?.email.includes("@")) {
-//     return [
-//       {
-//         field: "email",
-//         message: "invalid email",
-//       },
-//     ];
-//   }
+  if (!options.email.includes('@')) {
+    return [
+      {
+        field: "email",
+        message: "invalid email",
+      },
+    ];
+  }
 
   if (options.userName.length <= 2) {
     return [

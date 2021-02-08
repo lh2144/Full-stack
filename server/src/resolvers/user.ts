@@ -5,7 +5,6 @@ import {
     Arg,
     Ctx,
     Field,
-    InputType,
     Mutation,
     ObjectType,
     Query,
@@ -14,16 +13,7 @@ import {
 import { validateRegister } from "../utils/validateRegister";
 import { EntityManager } from "@mikro-orm/postgresql";
 import { Cookie_name } from "../constants";
-
-@InputType()
-export class UserNamePasswordInput {
-    @Field()
-    public userName: string;
-    @Field()
-    public password: string;
-    @Field()
-    public email: string;
-}
+import { UserNamePasswordInput } from "./UserNamePasswordInput";
 
 @ObjectType()
 class FieldError {
@@ -84,10 +74,11 @@ export class UserResolver {
                 .insert({
                     userName: options.userName,
                     password: hashedPassword,
+                    email: options.email,
                     created_at: new Date(),
                     updated_at: new Date(),
                 }).returning('*');
-            user =result[0];
+            user = result[0];
             await em.persistAndFlush(user);
         } catch (err) {
             if (err.code === "23505") {
@@ -107,10 +98,11 @@ export class UserResolver {
 
     @Mutation(() => UserResponse)
     public async login(
-        @Arg("options") options: UserNamePasswordInput,
+        @Arg("usernameOrEmail") usernameOrEmail: string,
+        @Arg("password") password: string,
         @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User, { userName: options.userName });
+        const user = await em.findOne(User, usernameOrEmail.includes('@') ? { email: usernameOrEmail} : { userName: usernameOrEmail });
         if (!user) {
             return {
                 errors: [
@@ -121,7 +113,7 @@ export class UserResolver {
                 ],
             };
         }
-        const valid = await argon2.verify(user.password, options.password);
+        const valid = await argon2.verify(user.password, password);
         if (!valid) {
             return {
                 errors: [

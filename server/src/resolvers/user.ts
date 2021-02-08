@@ -12,8 +12,10 @@ import {
 } from "type-graphql";
 import { validateRegister } from "../utils/validateRegister";
 import { EntityManager } from "@mikro-orm/postgresql";
-import { Cookie_name } from "../constants";
+import { Cookie_name, FORGET_PASSWORD_PREFIX } from "../constants";
 import { UserNamePasswordInput } from "./UserNamePasswordInput";
+import { sendEmail } from "src/utils/sendEmail";
+import { v4 } from "uuid";
 
 @ObjectType()
 class FieldError {
@@ -35,13 +37,29 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-    // @Mutation(() => Boolean)
-    // public forgotPassword(
-    //     @Arg('email') email: string,
-    //     @Ctx() { em }: MyContext
-    // ) {
-    //     return true;
-    // }
+    @Mutation(() => Boolean)
+    public async forgotPassword(
+        @Arg("email") email: string,
+        @Ctx() { em, redis }: MyContext
+    ) {
+        const user = await em.findOne(User, { email });
+        if (!user) {
+            return true;
+        }
+        const token = v4();
+        await redis.set(
+            FORGET_PASSWORD_PREFIX + token,
+            user.id,
+            "ex",
+            1000 * 60 * 60 * 24 * 3
+        );
+        await sendEmail(
+            email,
+            `<a href="http://localhost:3000/change-password/${token}">reset password`
+        );
+        return true;
+    }
+
     @Query(() => User, { nullable: true })
     public async currentUser(
         @Ctx() { req, em }: MyContext
@@ -77,7 +95,8 @@ export class UserResolver {
                     email: options.email,
                     created_at: new Date(),
                     updated_at: new Date(),
-                }).returning('*');
+                })
+                .returning("*");
             user = result[0];
             await em.persistAndFlush(user);
         } catch (err) {
@@ -102,7 +121,12 @@ export class UserResolver {
         @Arg("password") password: string,
         @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(User, usernameOrEmail.includes('@') ? { email: usernameOrEmail} : { userName: usernameOrEmail });
+        const user = await em.findOne(
+            User,
+            usernameOrEmail.includes("@")
+                ? { email: usernameOrEmail }
+                : { userName: usernameOrEmail }
+        );
         if (!user) {
             return {
                 errors: [
@@ -130,17 +154,17 @@ export class UserResolver {
     }
 
     @Mutation(() => Boolean)
-    public logout(
-        @Ctx() {req, res}: MyContext
-    ) {
-        return new Promise((resolve) => req.session.destroy((err: any) => {
-            res.clearCookie(Cookie_name);
-            if (err) {
-                resolve(false);
-                return;
-            }
+    public logout(@Ctx() { req, res }: MyContext) {
+        return new Promise((resolve) =>
+            req.session.destroy((err: any) => {
+                res.clearCookie(Cookie_name);
+                if (err) {
+                    resolve(false);
+                    return;
+                }
 
-            resolve(true);
-        }));
+                resolve(true);
+            })
+        );
     }
 }

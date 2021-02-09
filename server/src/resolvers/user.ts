@@ -12,10 +12,10 @@ import {
 } from "type-graphql";
 import { validateRegister } from "../utils/validateRegister";
 import { EntityManager } from "@mikro-orm/postgresql";
-import { Cookie_name } from "../constants";
 import { UserNamePasswordInput } from "./UserNamePasswordInput";
 import { sendEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
+import  jwt  from "jsonwebtoken";
 
 @ObjectType()
 class FieldError {
@@ -33,6 +33,9 @@ class UserResponse {
 
     @Field(() => User, { nullable: true })
     public user?: User;
+
+    @Field(() => String, { nullable: true })
+    public token?: String;
 }
 
 @Resolver()
@@ -42,7 +45,7 @@ export class UserResolver {
         @Arg("email") email: string,
         @Ctx() { em }: MyContext
     ) {
-        const user = await em.findOne(User, { email }); 
+        const user = await em.findOne(User, { email });
         if (!user) {
             return true;
         }
@@ -54,11 +57,11 @@ export class UserResolver {
             // user.id,
             // "ex",
             // 1000 * 60 * 60 * 24 * 3);
-            console.log('after redis');
+            console.log("after redis");
         } catch (err) {
             console.log(err);
         }
-        
+
         await sendEmail(
             email,
             `<a href="http://localhost:3000/change-password/${token}">reset password`
@@ -80,18 +83,17 @@ export class UserResolver {
     @Mutation(() => UserResponse)
     public async register(
         @Arg("options") options: UserNamePasswordInput,
-        @Ctx() { em, req }: MyContext
+        @Ctx() { em }: MyContext
     ): Promise<UserResponse> {
         const errors = validateRegister(options);
         if (errors) {
             return { errors };
         }
 
-        const hashedPassword = await argon2.hash(options.password);
-        console.log('password', hashedPassword)
         let user;
-        //  = em.create(User, {userName: options.userName, password: hashedPassword});
+        let token;
         try {
+            const hashedPassword = await argon2.hash(options.password);
             const result = await (em as EntityManager)
                 .createQueryBuilder(User)
                 .getKnexQuery()
@@ -103,11 +105,14 @@ export class UserResolver {
                     updated_at: new Date(),
                 })
                 .returning("*");
-            
+
             user = result[0];
-            console.log('in register' , user);
+            token = jwt.sign(
+                { username: user.user_name, password: hashedPassword },
+                "hanglian",
+                { expiresIn: "1h" }
+            );
         } catch (err) {
-            console.log(err)
             if (err.code === "23505") {
                 return {
                     errors: [
@@ -119,23 +124,24 @@ export class UserResolver {
                 };
             }
         }
-        req.session.userId = user?.id;
-        console.log('in user.', user.user_name)
-        return { user: {
-            id: user.id,
-            createdAt: user.created_at,
-            updatedAt: user.updated_at,
-            email: user.email,
-            password: user.password,
-            userName: user.user_name
-        }};
+        return {
+            user: {
+                id: user.id,
+                createdAt: user.created_at,
+                updatedAt: user.updated_at,
+                email: user.email,
+                password: user.password,
+                userName: user.user_name,
+            },
+            token,
+        };
     }
 
     @Mutation(() => UserResponse)
     public async login(
         @Arg("usernameOrEmail") usernameOrEmail: string,
         @Arg("password") password: string,
-        @Ctx() { em, req }: MyContext
+        @Ctx() { em }: MyContext
     ): Promise<UserResponse> {
         const user = await em.findOne(
             User,
@@ -164,24 +170,16 @@ export class UserResolver {
                 ],
             };
         }
-
-        req.session.userId = user.id;
-        console.log('log in user', user);
-        return { user };
+        const token = jwt.sign(
+            { username: user.userName, password: user.password },
+            "hanglian",
+            { expiresIn: "1h" }
+        );
+        return { user, token };
     }
 
     @Mutation(() => Boolean)
-    public logout(@Ctx() { req, res }: MyContext) {
-        return new Promise((resolve) =>
-            req.session.destroy((err: any) => {
-                res.clearCookie(Cookie_name);
-                if (err) {
-                    resolve(false);
-                    return;
-                }
-
-                resolve(true);
-            })
-        );
+    public logout() {
+        return true;
     }
 }

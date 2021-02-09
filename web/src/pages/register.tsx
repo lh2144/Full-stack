@@ -43,8 +43,8 @@ export const Register: React.FC<registerProps> = ({}) => {
                 {({ isSubmitting }) => (
                     <Form>
                         <InputField
-                            name="username"
-                            placeholder="username"
+                            name="userName"
+                            placeholder={'username'}
                             label="username"
                         />
                         <Box mt={4}>
@@ -65,8 +65,8 @@ export const Register: React.FC<registerProps> = ({}) => {
                         <Button
                             type="submit"
                             isLoading={isSubmitting}
-                            variantColor="teal"
-                        ></Button>
+                            colorScheme="teal"
+                        >Register</Button>
                     </Form>
                 )}
             </Formik>

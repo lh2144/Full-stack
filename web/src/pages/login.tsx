@@ -41,9 +41,9 @@ export const login: React.FC<{}> = ({}) => {
                         <Button
                             type="submit"
                             isLoading={isSubmitting}
-                            variantColor="teal"
+                            colorScheme="teal"
                         >
-                            Logic
+                            Login
                         </Button>
                     </Form>
                 )}

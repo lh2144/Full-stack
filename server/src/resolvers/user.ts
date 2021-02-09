@@ -12,9 +12,9 @@ import {
 } from "type-graphql";
 import { validateRegister } from "../utils/validateRegister";
 import { EntityManager } from "@mikro-orm/postgresql";
-import { Cookie_name, FORGET_PASSWORD_PREFIX } from "../constants";
+import { Cookie_name } from "../constants";
 import { UserNamePasswordInput } from "./UserNamePasswordInput";
-import { sendEmail } from "src/utils/sendEmail";
+import { sendEmail } from "../utils/sendEmail";
 import { v4 } from "uuid";
 
 @ObjectType()
@@ -40,19 +40,25 @@ export class UserResolver {
     @Mutation(() => Boolean)
     public async forgotPassword(
         @Arg("email") email: string,
-        @Ctx() { em, redis }: MyContext
+        @Ctx() { em }: MyContext
     ) {
-        const user = await em.findOne(User, { email });
+        const user = await em.findOne(User, { email }); 
         if (!user) {
             return true;
         }
         const token = v4();
-        await redis.set(
-            FORGET_PASSWORD_PREFIX + token,
-            user.id,
-            "ex",
-            1000 * 60 * 60 * 24 * 3
-        );
+        console.log(token);
+        try {
+            // await redis.set(
+            // FORGET_PASSWORD_PREFIX + token,
+            // user.id,
+            // "ex",
+            // 1000 * 60 * 60 * 24 * 3);
+            console.log('after redis');
+        } catch (err) {
+            console.log(err);
+        }
+        
         await sendEmail(
             email,
             `<a href="http://localhost:3000/change-password/${token}">reset password`
@@ -77,12 +83,12 @@ export class UserResolver {
         @Ctx() { em, req }: MyContext
     ): Promise<UserResponse> {
         const errors = validateRegister(options);
-
         if (errors) {
             return { errors };
         }
 
         const hashedPassword = await argon2.hash(options.password);
+        console.log('password', hashedPassword)
         let user;
         //  = em.create(User, {userName: options.userName, password: hashedPassword});
         try {
@@ -90,16 +96,18 @@ export class UserResolver {
                 .createQueryBuilder(User)
                 .getKnexQuery()
                 .insert({
-                    userName: options.userName,
+                    user_name: options.userName,
                     password: hashedPassword,
                     email: options.email,
                     created_at: new Date(),
                     updated_at: new Date(),
                 })
                 .returning("*");
+            
             user = result[0];
-            await em.persistAndFlush(user);
+            console.log('in register' , user);
         } catch (err) {
+            console.log(err)
             if (err.code === "23505") {
                 return {
                     errors: [
@@ -112,7 +120,15 @@ export class UserResolver {
             }
         }
         req.session.userId = user?.id;
-        return { user };
+        console.log('in user.', user.user_name)
+        return { user: {
+            id: user.id,
+            createdAt: user.created_at,
+            updatedAt: user.updated_at,
+            email: user.email,
+            password: user.password,
+            userName: user.user_name
+        }};
     }
 
     @Mutation(() => UserResponse)
@@ -150,6 +166,7 @@ export class UserResolver {
         }
 
         req.session.userId = user.id;
+        console.log('log in user', user);
         return { user };
     }
 

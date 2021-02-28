@@ -1,30 +1,31 @@
 import { Entity, PrimaryKey, Property } from "@mikro-orm/core";
 import { Field, Int, ObjectType } from "type-graphql";
+import { Column, CreateDateColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @ObjectType()
 @Entity()
 export class User {
-    @PrimaryKey()
+    @PrimaryGeneratedColumn()
     @Field(() => Int)
     public id!: number;
 
     @Field(() => String)
-    @Property({ type: 'date' })
-    public createdAt = new Date();
+    @CreateDateColumn()
+    public createdAt: Date;
 
+    @UpdateDateColumn()
     @Field(() => String)
-    @Property({ type: 'date', onUpdate: () => new Date() })
-    public updatedAt = new Date();
+    public updatedAt: Date;
 
     @Field()
-    @Property({ type: 'text', unique: true })
-    public userName!: string;
+    @Column({ unique: true })
+    public userName: string;
 
     @Field()
-    @Property({ type: 'text', unique: true })
+    @Column({ unique: true })
     public email!: string;
 
     @Field()
-    @Property({ type: 'text' })
+    @Column({ })
     public password!: string;
 }

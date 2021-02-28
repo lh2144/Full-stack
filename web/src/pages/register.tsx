@@ -5,7 +5,9 @@ import { InputField } from "src/components/inputField";
 import { Box, Button } from "@chakra-ui/react";
 import { useRegisterMutation } from "src/generated/graphqa";
 import { toErrorMap } from "src/utils/toErrorMap";
-import { useRouter } from 'next/router';
+import { useRouter } from "next/router";
+import { withUrqlClient } from "next-urql";
+import { createUrqlClient } from "src/utils/createUrqlClient";
 
 interface registerProps {}
 // const REGISTER_MUT = `
@@ -22,29 +24,36 @@ interface registerProps {}
 //   }
 // }
 // `;
-export const register: React.FC<registerProps> = ({}) => {
+export const Register: React.FC<registerProps> = ({}) => {
     const [, register] = useRegisterMutation();
     const router = useRouter();
     return (
         <Wrapper variant="small">
             <Formik
-                initialValues={{ username: "", password: "" }}
+                initialValues={{ email: " ", userName: "", password: "" }}
                 onSubmit={async (values, { setErrors }) => {
-                    const response = await register(values);
+                    const response = await register({ options: values });
                     if (response.data?.register.errors) {
                         setErrors(toErrorMap(response.data.register.errors));
                     } else if (response.data?.register.user) {
-                        router.push('/');
+                        router.push("/");
                     }
                 }}
             >
                 {({ isSubmitting }) => (
                     <Form>
                         <InputField
-                            name="username"
-                            placeholder="username"
+                            name="userName"
+                            placeholder={'username'}
                             label="username"
                         />
+                        <Box mt={4}>
+                            <InputField
+                                name="email"
+                                placeholder="email"
+                                label="Email"
+                            />
+                        </Box>
                         <Box mt={4}>
                             <InputField
                                 name="password"
@@ -56,8 +65,8 @@ export const register: React.FC<registerProps> = ({}) => {
                         <Button
                             type="submit"
                             isLoading={isSubmitting}
-                            variantColor="teal"
-                        ></Button>
+                            colorScheme="teal"
+                        >Register</Button>
                     </Form>
                 )}
             </Formik>
@@ -65,4 +74,4 @@ export const register: React.FC<registerProps> = ({}) => {
     );
 };
 
-export default register;
+export default withUrqlClient(createUrqlClient)(Register);

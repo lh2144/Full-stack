@@ -43,7 +43,7 @@ class UserResponse {
 @Resolver(User)
 export class UserResolver {
     @FieldResolver(() => String)
-    email(@Root() user: User, @Ctx() { auth }: MyContext) {
+    public email(@Root() user: User, @Ctx() { auth }: MyContext) {
         // this is the current user and its ok to show them their own email
         if (auth.token.id === user.id) {
             return user.email;

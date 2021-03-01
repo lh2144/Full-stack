@@ -160,7 +160,7 @@ export class PostResolver {
     }
 
     @Mutation(() => Post, { nullable: true })
-    public async updatPost(
+    public async updatePost(
         @Arg("title", () => String) title: string,
         @Arg("id", () => Int) id: number,
         @Arg("text") text: string,

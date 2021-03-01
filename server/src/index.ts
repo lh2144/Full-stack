@@ -1,17 +1,15 @@
-import { MikroORM } from "@mikro-orm/core";
 import { ApolloServer } from "apollo-server-express";
 import express from "express";
 import "reflect-metadata";
 import { buildSchema } from "type-graphql";
-import mikroConfig from "./mikro-orm.config";
+import { createConnection } from 'typeorm';
+import { Post } from "./entities/Post";
+import { User } from "./entities/User";
 import { PostResolver } from "./resolvers/post";
 import { UserResolver } from "./resolvers/user";
 import { MyContext } from "./types";
 import { isAuth } from "./utils/isAuth";
-import {createConnection } from 'typeorm';
-import { User } from "./entities/User";
-import { Post } from "./entities/Post";
-
+import cors from 'cors';
 const main = async () => {
     // sendEmail('hang@lian.com', 'hello ther')
     const conn = await createConnection({
@@ -23,10 +21,14 @@ const main = async () => {
         synchronize: true,
         entities: [Post, User]
     });
-    const orm = await MikroORM.init(mikroConfig);
-    await orm.getMigrator().up();
 
     const app = express();
+    app.use(
+        cors({
+            origin: "http://localhost:3000",
+            credentials: true
+        })
+    );
     const apolloServer = new ApolloServer({
         schema: await buildSchema({
             resolvers: [PostResolver, UserResolver],
@@ -36,7 +38,7 @@ const main = async () => {
     });
     apolloServer.applyMiddleware({
         app,
-        cors: { origin: "http://localhost:3000", credentials: true },
+        cors: false,
         
     });
     app.listen(4000, () => {

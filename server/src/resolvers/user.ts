@@ -1,21 +1,23 @@
-import { User } from "../entities/User";
-import { MyContext } from "src/types";
 import argon2 from "argon2";
+import jwt from "jsonwebtoken";
+import { MyContext } from "src/types";
 import {
     Arg,
     Ctx,
     Field,
+    FieldResolver,
     Mutation,
     ObjectType,
     Query,
     Resolver,
+    Root
 } from "type-graphql";
-import { validateRegister } from "../utils/validateRegister";
-import { EntityManager } from "@mikro-orm/postgresql";
-import { UserNamePasswordInput } from "./UserNamePasswordInput";
-import { sendEmail } from "../utils/sendEmail";
+import { getConnection } from "typeorm";
 import { v4 } from "uuid";
-import  jwt  from "jsonwebtoken";
+import { User } from "../entities/User";
+import { sendEmail } from "../utils/sendEmail";
+import { validateRegister } from "../utils/validateRegister";
+import { UserNamePasswordInput } from "./UserNamePasswordInput";
 
 @ObjectType()
 class FieldError {
@@ -38,29 +40,73 @@ class UserResponse {
     public token?: String;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+    @FieldResolver(() => String)
+    email(@Root() user: User, @Ctx() { req, auth }: MyContext) {
+        // this is the current user and its ok to show them their own email
+        if (auth.token.id === user.id) {
+            return user.email;
+        }
+        // current user wants to see someone elses email
+        return "";
+    }
+
+    @Mutation(() => UserResponse)
+    public async changePassword(
+        @Arg("newPassword") newPassword: string,
+        @Ctx() { auth }: MyContext
+    ): Promise<UserResponse> {
+        if (newPassword.length <= 3) {
+            return {
+                errors: [
+                    {
+                        field: "newpassword",
+                        message: "length must be grater than 3",
+                    },
+                ],
+            };
+        }
+
+        const userId = auth.token.id;
+        const user = await User.findOne(userId);
+        if (!user) {
+            return {
+                errors: [
+                    {
+                        field: "id",
+                        message: "user no long exists",
+                    },
+                ],
+            };
+        }
+        await User.update(
+            { id: userId },
+            {
+                password: await argon2.hash(newPassword),
+            }
+        );
+        return { user };
+    }
+
     @Mutation(() => Boolean)
-    public async forgotPassword(
-        @Arg("email") email: string,
-        @Ctx() { em }: MyContext
-    ) {
-        const user = await em.findOne(User, { email });
+    public async forgotPassword(@Arg("email") email: string) {
+        const user = await User.findOne({ where: { email } });
         if (!user) {
             return true;
         }
         const token = v4();
-        console.log(token);
-        try {
-            // await redis.set(
-            // FORGET_PASSWORD_PREFIX + token,
-            // user.id,
-            // "ex",
-            // 1000 * 60 * 60 * 24 * 3);
-            console.log("after redis");
-        } catch (err) {
-            console.log(err);
-        }
+        // console.log(token);
+        // try {
+        //     // await redis.set(
+        //     // FORGET_PASSWORD_PREFIX + token,
+        //     // user.id,
+        //     // "ex",
+        //     // 1000 * 60 * 60 * 24 * 3);
+        //     console.log("after redis");
+        // } catch (err) {
+        //     console.log(err);
+        // }
 
         await sendEmail(
             email,
@@ -70,20 +116,17 @@ export class UserResolver {
     }
 
     @Query(() => User, { nullable: true })
-    public async currentUser(
-        @Ctx() { req, em }: MyContext
-    ): Promise<User | null> {
-        if (!req.session.userId) {
+    public async currentUser(@Ctx() { auth }: MyContext): Promise<any> {
+        if (!auth.isAuth) {
             return null;
         }
-        const user = await em.findOne(User, { id: req.session.userId });
-        return user;
+        return User.findOne(auth.token.id);
     }
 
     @Mutation(() => UserResponse)
     public async register(
         @Arg("options") options: UserNamePasswordInput,
-        @Ctx() { em }: MyContext
+        @Ctx() { req }: MyContext
     ): Promise<UserResponse> {
         const errors = validateRegister(options);
         if (errors) {
@@ -94,21 +137,21 @@ export class UserResolver {
         let token;
         try {
             const hashedPassword = await argon2.hash(options.password);
-            const result = await (em as EntityManager)
-                .createQueryBuilder(User)
-                .getKnexQuery()
-                .insert({
-                    user_name: options.userName,
+            const result = await getConnection()
+                .createQueryBuilder()
+                .insert()
+                .into(User)
+                .values({
+                    username: options.userName,
                     password: hashedPassword,
                     email: options.email,
-                    created_at: new Date(),
-                    updated_at: new Date(),
                 })
-                .returning("*");
+                .returning("*")
+                .execute();
 
-            user = result[0];
+            user = result.raw[0];
             token = jwt.sign(
-                { username: user.user_name, password: hashedPassword },
+                { id: user.id, password: hashedPassword },
                 "hanglian",
                 { expiresIn: "1h" }
             );
@@ -125,14 +168,7 @@ export class UserResolver {
             }
         }
         return {
-            user: {
-                id: user.id,
-                createdAt: user.created_at,
-                updatedAt: user.updated_at,
-                email: user.email,
-                password: user.password,
-                userName: user.user_name,
-            },
+            user,
             token,
         };
     }
@@ -141,13 +177,12 @@ export class UserResolver {
     public async login(
         @Arg("usernameOrEmail") usernameOrEmail: string,
         @Arg("password") password: string,
-        @Ctx() { em }: MyContext
+        @Ctx() { req }: MyContext
     ): Promise<UserResponse> {
-        const user = await em.findOne(
-            User,
+        const user = await User.findOne(
             usernameOrEmail.includes("@")
-                ? { email: usernameOrEmail }
-                : { userName: usernameOrEmail }
+                ? { where: {email: usernameOrEmail } }
+                : { where : {userName: usernameOrEmail } }
         );
         if (!user) {
             return {
@@ -171,7 +206,7 @@ export class UserResolver {
             };
         }
         const token = jwt.sign(
-            { username: user.userName, password: user.password },
+            { id: user.id, password: user.password },
             "hanglian",
             { expiresIn: "1h" }
         );

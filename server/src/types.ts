@@ -1,4 +1,3 @@
-import { Connection, EntityManager, IDatabaseDriver } from "@mikro-orm/core";
 import { Request, Response } from "express";
 import { Session } from "express-session";
 import { createUpdootLoader } from "./utils/createUpdootLoader";

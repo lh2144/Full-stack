@@ -43,7 +43,7 @@ class UserResponse {
 @Resolver(User)
 export class UserResolver {
     @FieldResolver(() => String)
-    email(@Root() user: User, @Ctx() { req, auth }: MyContext) {
+    email(@Root() user: User, @Ctx() { auth }: MyContext) {
         // this is the current user and its ok to show them their own email
         if (auth.token.id === user.id) {
             return user.email;
@@ -126,7 +126,7 @@ export class UserResolver {
     @Mutation(() => UserResponse)
     public async register(
         @Arg("options") options: UserNamePasswordInput,
-        @Ctx() { req }: MyContext
+        @Ctx() { }: MyContext
     ): Promise<UserResponse> {
         const errors = validateRegister(options);
         if (errors) {
@@ -177,7 +177,7 @@ export class UserResolver {
     public async login(
         @Arg("usernameOrEmail") usernameOrEmail: string,
         @Arg("password") password: string,
-        @Ctx() { req }: MyContext
+        @Ctx() {}: MyContext
     ): Promise<UserResponse> {
         const user = await User.findOne(
             usernameOrEmail.includes("@")

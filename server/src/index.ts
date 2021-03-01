@@ -32,7 +32,7 @@ const main = async () => {
             resolvers: [PostResolver, UserResolver],
             validate: false,
         }),
-        context: ({ req, res }): MyContext => ({ em: orm.em, req, res, auth: isAuth(req, res) }),
+        context: ({ req, res }): MyContext => ({ req, res, auth: isAuth(req, res) }),
     });
     apolloServer.applyMiddleware({
         app,

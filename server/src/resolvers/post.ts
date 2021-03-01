@@ -1,5 +1,5 @@
-import { Updoot } from "src/entities/Updoot";
-import { User } from "src/entities/User";
+import { Updoot } from "../entities/Updoot";
+import { User } from "../entities/User";
 import { MyContext } from "src/types";
 import {
     Arg,

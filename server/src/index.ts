@@ -12,16 +12,17 @@ import { isAuth } from "./utils/isAuth";
 import cors from "cors";
 import { createUserLoader } from "./utils/createUserLoader";
 import { createUpdootLoader } from "./utils/createUpdootLoader";
+import { Updoot } from "./entities/Updoot";
 const main = async () => {
     // sendEmail('hang@lian.com', 'hello ther')
-    const conn = await createConnection({
+    await createConnection({
         type: "postgres",
         database: "redditcopy",
         username: "postgres",
         password: "5136200",
         logging: true,
         synchronize: true,
-        entities: [Post, User],
+        entities: [Post, User, Updoot],
     });
 
     const app = express();

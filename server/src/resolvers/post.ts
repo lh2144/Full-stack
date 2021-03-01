@@ -48,7 +48,7 @@ export class PostResolver {
     @FieldResolver(() => Int, { nullable: true })
     public async voteStatus(
         @Root() post: Post,
-        @Ctx() { updootLoader, req, auth }: MyContext
+        @Ctx() { updootLoader, auth }: MyContext
     ) {
         if (!auth.token.id) {
             return null;
@@ -66,7 +66,7 @@ export class PostResolver {
     public async vote(
         @Arg("postId", () => Int) postId: number,
         @Arg("value", () => Int) value: number,
-        @Ctx() { req, auth }: MyContext
+        @Ctx() { auth }: MyContext
     ) {
         const isUpdoot = value !== -1;
         const realval = isUpdoot ? 1 : -1;

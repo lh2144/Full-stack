@@ -69,3 +69,5 @@ const Post = ({}) => {
         </Layout>
     );
 };
+
+export default Post;

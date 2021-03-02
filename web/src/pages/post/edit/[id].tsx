@@ -74,3 +74,5 @@ const EditPost = ({}) => {
         </Layout>
     );
 };
+
+export default EditPost;

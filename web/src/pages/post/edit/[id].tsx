@@ -5,6 +5,7 @@ import React from "react";
 import { InputField } from "src/components/inputField";
 import { usePostQuery, useUpdatePostMutation } from "src/generated/graphqa";
 import { useGetIntId } from "src/utils/useGetIntId";
+import { withApollo } from "src/utils/withApollo";
 import { Layout } from "../../../components/Layout";
 
 const EditPost = ({}) => {
@@ -75,4 +76,4 @@ const EditPost = ({}) => {
     );
 };
 
-export default EditPost;
+export default withApollo({ ssr: false })(EditPost);

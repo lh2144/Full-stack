@@ -5,6 +5,7 @@ import { Layout } from "src/components/Layout";
 import { useDeletePostMutation, useMeQuery } from "src/generated/graphqa";
 import { useGetPostFromUrl } from "src/utils/useGetPostFormURL";
 import NextLink from "next/link";
+import { withApollo } from "src/utils/withApollo";
 const Post = ({}) => {
     const { data, error, loading } = useGetPostFromUrl();
     const { data: medata } = useMeQuery();
@@ -65,9 +66,9 @@ const Post = ({}) => {
         <Layout>
             <Heading mb={4}>{data.post.title}</Heading>
             <Box mb={4}>{data.post.text}</Box>
-            {deletePost}
+            {deleteButton}
         </Layout>
     );
 };
 
-export default Post;
+export default withApollo({ ssr: true })(Post);

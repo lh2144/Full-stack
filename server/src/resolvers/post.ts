@@ -70,7 +70,8 @@ export class PostResolver {
     ) {
         const isUpdoot = value !== -1;
         const realval = isUpdoot ? 1 : -1;
-        const { id: userId } = auth.token.id;
+        const userId  = parseInt(auth.token.id);
+        console.log(auth);
 
         const updoot = await Updoot.findOne({ where: { postId, userId } });
 
@@ -94,7 +95,7 @@ export class PostResolver {
             await getConnection().transaction(async (tm) => {
                 await tm.query(
                     `
-                insert into updoot ("userId", "postId", value)
+                insert into updoot ("userId", "postId", "value")
                 values ($1, $2, $3)
                     `,
                     [userId, postId, realval]
@@ -130,8 +131,8 @@ export class PostResolver {
             select p.*
             from post p
             ${cursor ? `where p."createdAt" < $2` : ""}
-            order by p."createdAt DESC
-            limit $1"`,
+            order by p."createdAt" DESC
+            limit $1`,
             replacements
         );
         return {

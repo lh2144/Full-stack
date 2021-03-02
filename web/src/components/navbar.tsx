@@ -41,6 +41,7 @@ export const NavBar: React.FC<NavBarProps> = ({}) => {
                     onClick={async () => {
                         await logout();
                         await apolloClient.resetStore();
+                        localStorage.removeItem('token');
                     }}
                     isLoading={logoutFetching}
                     variant="link"

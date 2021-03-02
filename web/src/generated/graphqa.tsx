@@ -227,6 +227,7 @@ export type LoginMutation = (
   { __typename?: 'Mutation' }
   & { login: (
     { __typename?: 'UserResponse' }
+    & Pick<UserResponse, 'token'>
     & RegularUserResponseFragment
   ) }
 );
@@ -248,6 +249,7 @@ export type RegisterMutation = (
   { __typename?: 'Mutation' }
   & { register: (
     { __typename?: 'UserResponse' }
+    & Pick<UserResponse, 'token'>
     & RegularUserResponseFragment
   ) }
 );
@@ -496,6 +498,7 @@ export const LoginDocument = gql`
     mutation Login($usernameOrEmail: String!, $password: String!) {
   login(usernameOrEmail: $usernameOrEmail, password: $password) {
     ...RegularUserResponse
+    token
   }
 }
     ${RegularUserResponseFragmentDoc}`;
@@ -558,6 +561,7 @@ export const RegisterDocument = gql`
     mutation Register($options: UserNamePasswordInput!) {
   register(options: $options) {
     ...RegularUserResponse
+    token
   }
 }
     ${RegularUserResponseFragmentDoc}`;

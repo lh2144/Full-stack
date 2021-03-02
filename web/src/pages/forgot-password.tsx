@@ -1,6 +1,7 @@
 import { Box, Button } from "@chakra-ui/react";
 import { Form, Formik } from "formik";
 import React, { useState } from "react";
+import { withApollo } from "src/utils/withApollo";
 import { InputField } from "../components/inputField";
 import { Wrapper } from "../components/wrapper";
 import { useForgotPasswordMutation } from "../generated/graphqa";
@@ -46,4 +47,4 @@ const ForgotPassword: React.FC<{}> = ({}) => {
   );
 };
 
-export default (ForgotPassword);
+export default withApollo({ssr: false})(ForgotPassword);

@@ -1,17 +1,16 @@
-import React from "react";
-import { Formik, Form } from "formik";
-import { Wrapper } from "src/components/wrapper";
-import { InputField } from "src/components/inputField";
 import { Box, Button } from "@chakra-ui/react";
+import { Form, Formik } from "formik";
+import { useRouter } from "next/router";
+import React from "react";
+import { InputField } from "src/components/inputField";
+import { Wrapper } from "src/components/wrapper";
 import {
     MeDocument,
     MeQuery,
-    useRegisterMutation,
+    useRegisterMutation
 } from "src/generated/graphqa";
 import { toErrorMap } from "src/utils/toErrorMap";
-import { useRouter } from "next/router";
-import { withUrqlClient } from "next-urql";
-import { createUrqlClient } from "src/utils/createUrqlClient";
+import { withApollo } from "src/utils/withApollo";
 
 interface registerProps {}
 export const Register: React.FC<registerProps> = ({}) => {
@@ -77,4 +76,4 @@ export const Register: React.FC<registerProps> = ({}) => {
     );
 };
 
-export default (Register);
+export default withApollo({ ssr: false })(Register);

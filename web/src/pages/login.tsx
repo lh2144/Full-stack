@@ -6,8 +6,9 @@ import { Box, Button } from "@chakra-ui/react";
 import { MeDocument, MeQuery, useLoginMutation } from "src/generated/graphqa";
 import { toErrorMap } from "src/utils/toErrorMap";
 import { useRouter } from "next/router";
+import { withApollo } from "src/utils/withApollo";
 
-export const login: React.FC<{}> = ({}) => {
+export const Login: React.FC<{}> = ({}) => {
     const [login] = useLoginMutation();
     const router = useRouter();
     return (
@@ -22,15 +23,21 @@ export const login: React.FC<{}> = ({}) => {
                                 query: MeDocument,
                                 data: {
                                     __typename: "Query",
-                                    currentUser: data?.login.user
+                                    currentUser: data?.login.user,
                                 },
                             });
-                            cache.evict({fieldName: "posts"});
-                        }
+                            cache.evict({ fieldName: "posts" });
+                        },
                     });
                     if (response.data?.login.errors) {
                         setErrors(toErrorMap(response.data.login.errors));
                     } else if (response.data?.login.user) {
+                        if (response.data.login.token) {
+                            localStorage.setItem(
+                                "token",
+                                response.data?.login.token
+                            );
+                        }
                         router.push("/");
                     }
                 }}
@@ -64,4 +71,4 @@ export const login: React.FC<{}> = ({}) => {
     );
 };
 
-export default login;
+export default withApollo({ ssr: false })(Login);
